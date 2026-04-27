@@ -1,4 +1,5 @@
-from flask import Blueprint, render_template, current_app,abort
+import os
+from flask import Blueprint, render_template, current_app, abort, send_from_directory
 
 bp = Blueprint('main', __name__)
 
@@ -10,6 +11,13 @@ def index():
                            win_file=current_app.config['INSTALLER_WIN'],
                            linux_file=current_app.config['INSTALLER_LINUX'],
                            mac_file=current_app.config['INSTALLER_MAC'])
+
+@bp.route('/install.sh')
+def serve_install_sh():
+    static_dir = os.path.join(current_app.root_path, 'static', 'installers')
+    return send_from_directory(static_dir, 'install.sh')
+
+
 @bp.context_processor
 def inject_global_vars():
     return dict(version=current_app.config['LATEST_VERSION'])
