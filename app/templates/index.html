@@ -5,6 +5,24 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
 <!-- Professional Font: Inter & JetBrains Mono for code -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+    .dev-warning {
+        background: rgba(245, 158, 11, 0.1);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+        border-left: 4px solid #f59e0b;
+        color: #fcd34d;
+        padding: 16px 20px;
+        border-radius: 8px;
+        margin-bottom: 24px;
+        font-size: 0.95rem;
+        text-align: left;
+        line-height: 1.6;
+        display: none; /* Hidden by default, toggled by JS */
+    }
+    .dev-warning strong {
+        color: #fff;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
@@ -14,13 +32,19 @@
     <div class="container hero-content">
         <div class="hero-text">
             <div class="badge-wrapper">
-                <span class="badge"><i class="fas fa-shield-alt"></i> &bull; v{{ version }} Stable Release</span>
+                <span class="badge" id="hero-version-badge"><i class="fas fa-shield-alt"></i> &bull; v13.6.0 Development Build</span>
             </div>
             <h1>The High-Performance <br><span class="text-gradient">Relational Engine</span></h1>
             <p>
                 An ultra-fast, columnar, disk-based database built in Rust. 
                 Designed for massive scale, it combines microsecond-level latency powered by <strong>LSM Trees</strong> with uncompromising <strong>Relational Integrity</strong>.
             </p>
+            
+            <!-- DYNAMIC UNDER DEVELOPMENT BANNER -->
+            <div id="dev-warning-banner" class="dev-warning">
+                <strong><i class="fas fa-tools"></i> Notice:</strong> MaazDB <strong>v13.6.0</strong> and its website documentation are currently <strong>Under Development</strong>. For production environments, please switch to the stable <strong>v12.4.1</strong> release using the version selector in the header.
+            </div>
+
             <div id="os-message" class="os-check" style="display: none;"></div>
             <div class="hero-btns">
                 <a href="#download" class="btn-primary">
@@ -279,25 +303,46 @@
     </div>
 </section>
 
-<!-- DOWNLOADS -->
+<!-- DYNAMIC DOWNLOADS SECTION -->
 <section id="download" class="section border-top">
     <div class="container">
         <div class="text-center mb-5">
-            <h2 class="section-title">Deploy MaazDB v{{ version }}</h2>
-            <p class="section-subtitle">Available for all major operating systems and architectures. Get started in seconds.</p>
+            <h2 class="section-title">Download MaazDB <span id="dl-version-title" class="text-gradient">v13.6.0</span></h2>
+            <p class="section-subtitle" id="dl-version-subtitle">Get the latest development build with Protocol v2.1.</p>
         </div>
-        <div class="download-grid">
-            <a href="{{ url_for('static', filename='installers/' + win_file) }}" class="dl-card">
+
+        <!-- v13.6.0 DOWNLOADS (Shown by default) -->
+        <div id="downloads-13" class="download-grid">
+            <a href="https://github.com/42Wor/maazdb-cli/releases/download/v13.6.0/maazdb-windows-installer-x64.exe" class="dl-card">
                 <div class="dl-icon-wrapper"><i class="fab fa-windows icon-windows"></i></div>
                 <h3>Windows</h3>
                 <p>64-bit Installer (.exe)</p>
             </a>
-            <a href="{{ url_for('static', filename='installers/' + linux_file) }}" class="dl-card">
+            <a href="https://github.com/42Wor/maazdb-cli/releases/download/v13.6.0/maazdb-linux-amd64.tar.gz" class="dl-card">
+                <div class="dl-icon-wrapper"><i class="fab fa-linux icon-linux"></i></div>
+                <h3>Linux</h3>
+                <p>Tarball (.tar.gz)</p>
+            </a>
+            <a href="https://github.com/42Wor/maazdb-cli/releases/download/v13.6.0/maazdb-macos-amd64.tar.gz" class="dl-card">
+                <div class="dl-icon-wrapper"><i class="fab fa-apple icon-mac"></i></div>
+                <h3>macOS</h3>
+                <p>Tarball (.tar.gz)</p>
+            </a>
+        </div>
+
+        <!-- v12.4.1 DOWNLOADS (Hidden by default) -->
+        <div id="downloads-12" class="download-grid" style="display: none;">
+            <a href="https://github.com/42Wor/maazdb-cli/releases/download/v12.4.1/MaazDB_Setup_Windows_x64_1241.exe" class="dl-card" style="border-color: rgba(16, 185, 129, 0.3);">
+                <div class="dl-icon-wrapper"><i class="fab fa-windows icon-windows"></i></div>
+                <h3>Windows</h3>
+                <p>64-bit Installer (.exe)</p>
+            </a>
+            <a href="https://github.com/42Wor/maazdb-cli/releases/download/v12.4.1/maazdb_12.4.1_linux_amd64.deb" class="dl-card" style="border-color: rgba(16, 185, 129, 0.3);">
                 <div class="dl-icon-wrapper"><i class="fab fa-linux icon-linux"></i></div>
                 <h3>Linux</h3>
                 <p>Debian/Ubuntu (.deb)</p>
             </a>
-            <a href="{{ url_for('static', filename='installers/' + mac_file) }}" class="dl-card">
+            <a href="https://github.com/42Wor/maazdb-cli/releases/download/v12.4.1/MaazDB_12.4.1_macOS.dmg" class="dl-card" style="border-color: rgba(16, 185, 129, 0.3);">
                 <div class="dl-icon-wrapper"><i class="fab fa-apple icon-mac"></i></div>
                 <h3>macOS</h3>
                 <p>Universal Installer (.dmg)</p>
@@ -321,6 +366,34 @@
 
 {% block scripts %}
 <script>
+    // Listen for the version change event dispatched from base.html
+    window.addEventListener('versionChanged', (e) => {
+        const version = e.detail.version;
+        
+        const badge = document.getElementById('hero-version-badge');
+        const warning = document.getElementById('dev-warning-banner');
+        const dlTitle = document.getElementById('dl-version-title');
+        const dlSubtitle = document.getElementById('dl-version-subtitle');
+        const grid13 = document.getElementById('downloads-13');
+        const grid12 = document.getElementById('downloads-12');
+
+        if (version === '13.6.0') {
+            if(badge) badge.innerHTML = `<i class="fas fa-shield-alt"></i> &bull; v13.6.0 Development Build`;
+            if(warning) warning.style.display = 'block';
+            if(dlTitle) dlTitle.innerText = 'v13.6.0';
+            if(dlSubtitle) dlSubtitle.innerText = 'Get the latest development build with Protocol v2.1.';
+            if(grid13) grid13.style.display = 'grid';
+            if(grid12) grid12.style.display = 'none';
+        } else {
+            if(badge) badge.innerHTML = `<i class="fas fa-shield-alt"></i> &bull; v12.4.1 Stable Release`;
+            if(warning) warning.style.display = 'none';
+            if(dlTitle) dlTitle.innerText = 'v12.4.1';
+            if(dlSubtitle) dlSubtitle.innerText = 'Get the stable production-ready release.';
+            if(grid13) grid13.style.display = 'none';
+            if(grid12) grid12.style.display = 'grid';
+        }
+    });
+
     // OS Detection
     document.addEventListener("DOMContentLoaded", () => {
         const osMessage = document.getElementById('os-message');

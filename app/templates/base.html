@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MaazDB v{{ version }}</title>
+    <title>MaazDB</title>
     
     <!-- Global CSS & Fonts -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/footer_header.css') }}">
@@ -45,7 +45,6 @@
                             </div>
                             <div class="mega-column">
                                 <h4>Schema & Tables</h4>
-                                
                                 <a href="{{ url_for('main.docs') }}#db-USE"><i class="fas fa-network-wired"></i> USE Command</a>
                                 <a href="{{ url_for('main.docs') }}#db-mgmt"><i class="fas fa-database"></i> Databases</a>
                                 <a href="{{ url_for('main.docs') }}#types"><i class="fas fa-shapes"></i> Data Types</a>
@@ -92,7 +91,19 @@
                     </div>
                 </li>
 
-                <li><a href="{{ url_for('main.index') }}#download" class="btn-nav">Get v{{ version }}</a></li>
+                <!-- VERSION CONTROL DROPDOWN -->
+                <li class="nav-item-dropdown">
+                    <a href="#" id="version-display">v13.6.0 <i class="fas fa-chevron-down dropdown-icon"></i></a>
+                    <div class="mega-menu" style="min-width: 180px; padding: 1.5rem;">
+                        <div class="mega-column">
+                            <h4 style="margin-bottom: 0.5rem;">Select Version</h4>
+                            <a href="#" onclick="changeVersion('13.6.0'); return false;" id="btn-v13">v13.6.0 (Latest)</a>
+                            <a href="#" onclick="changeVersion('12.4.1'); return false;" id="btn-v12">v12.4.1 (Stable)</a>
+                        </div>
+                    </div>
+                </li>
+
+                <li><a href="{{ url_for('main.index') }}#download" class="btn-nav">Download</a></li>
             </ul>
         </div>
     </nav>
@@ -143,15 +154,32 @@
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2025 Maaz Waheed. MaazDB - All Rights Reserved.</p>
+                <p>&copy; 2026 Maaz Waheed. MaazDB - All Rights Reserved.</p>
             </div>
         </div>
     </footer>
 
-    <!-- Script to toggle mobile menu and dropdowns -->
+    <!-- Global Scripts -->
     <script>
+        // Version Control Logic
+        function changeVersion(version) {
+            localStorage.setItem('maazdb_version', version);
+            document.getElementById('version-display').innerHTML = `v${version} <i class="fas fa-chevron-down dropdown-icon"></i>`;
+            
+            // Highlight active version in dropdown
+            document.getElementById('btn-v13').style.color = version === '13.6.0' ? 'var(--accent)' : 'var(--text-main)';
+            document.getElementById('btn-v12').style.color = version === '12.4.1' ? 'var(--accent)' : 'var(--text-main)';
+
+            // Dispatch event so index.html can update its content dynamically
+            window.dispatchEvent(new CustomEvent('versionChanged', { detail: { version } }));
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
-            // 1. Main Mobile Menu Toggle (Hamburger)
+            // Initialize version state
+            const savedVersion = localStorage.getItem('maazdb_version') || '13.6.0';
+            changeVersion(savedVersion);
+
+            // Mobile Menu Toggle
             const mobileToggle = document.querySelector('.mobile-toggle');
             const navLinks = document.querySelector('.nav-links');
             const icon = mobileToggle.querySelector('i');
@@ -167,17 +195,13 @@
                 }
             });
 
-            // 2. Mobile Dropdown Toggle (Mega Menus)
+            // Mobile Dropdown Toggle
             const dropdownIcons = document.querySelectorAll('.nav-item-dropdown .dropdown-icon');
-            
             dropdownIcons.forEach(function(dropdownIcon) {
                 dropdownIcon.addEventListener('click', function(e) {
-                    // Only apply this logic on mobile screens
                     if (window.innerWidth <= 768) {
-                        e.preventDefault(); // Prevent the link from redirecting
-                        e.stopPropagation(); // Stop the click from bubbling up
-                        
-                        // Toggle the 'mobile-open' class on the parent <li>
+                        e.preventDefault();
+                        e.stopPropagation();
                         const parentLi = this.closest('.nav-item-dropdown');
                         parentLi.classList.toggle('mobile-open');
                     }
