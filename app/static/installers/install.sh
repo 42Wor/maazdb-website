@@ -1,87 +1,167 @@
-#!/bin/bash
-set -e 
+#!/bin/sh
+set -e
 
-# --- Settings ---
 REPO="42Wor/maazdb-cli"
-# Usage for local test: sudo -E LOCAL_DIR=$(pwd)/dist ./install.sh
-INSTALL_SOURCE=${LOCAL_DIR:-"download"}
+VERSION="13.6.0"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[0;33m'
 NC='\033[0m'
 
-echo -e "${BLUE}=== MaazDB Installation ===${NC}"
+printf "%b\n" "${BLUE}=== MaazDB Unix Installer ===${NC}"
 
-# 1. Detect Platform
-OS_TYPE="$(uname -s)"
-if [ "$OS_TYPE" = "Linux" ]; then PLATFORM="linux"; elif [ "$OS_TYPE" = "Darwin" ]; then PLATFORM="macos"; else echo "Unsupported OS"; exit 1; fi
-TARGET="maazdb-${PLATFORM}-amd64"
-
-# 2. Root check
-if [ "$EUID" -ne 0 ]; then echo -e "${RED}Please run with sudo${NC}"; exit 1; fi
-
-# 3. Stop existing service to prevent "Text file busy"
-if [ -f /etc/systemd/system/maazdb.service ]; then
-    echo "-> Stopping existing maazdb service..."
-    systemctl stop maazdb || true
-fi
-
-# 4. Prepare Files
-TMP_DIR=$(mktemp -d)
-
-if [ "$INSTALL_SOURCE" = "download" ]; then
-    echo "-> Downloading latest release..."
-    DOWNLOAD_URL="https://github.com/$REPO/releases/latest/download/${TARGET}.tar.gz"
-    curl -sSL "$DOWNLOAD_URL" -o "$TMP_DIR/maazdb.tar.gz"
-    tar -xzf "$TMP_DIR/maazdb.tar.gz" -C "$TMP_DIR"
-    EXTRACTED_FOLDER="$TMP_DIR/$TARGET"
+if [ "$(id -u)" -eq 0 ]; then
+    IS_ROOT=true
+    INSTALL_DIR="/usr/local/bin"
+    ICON_DIR="/usr/share/pixmaps"
+    APP_DIR="/usr/share/applications"
+    printf "%b\n" "-> Installing system-wide (Admin Mode)"
 else
-    # Use realpath to ensure the path is absolute and valid
-    EXTRACTED_FOLDER="$(realpath "$INSTALL_SOURCE")/$TARGET"
-    echo "-> Using local files from $EXTRACTED_FOLDER..."
+    IS_ROOT=false
+    INSTALL_DIR="$HOME/.maazdb/bin"
+    ICON_DIR="$HOME/.local/share/pixmaps"
+    APP_DIR="$HOME/.local/share/applications"
+    printf "%b\n" "-> Installing user-local (Local Mode)"
 fi
 
-# Verify the folder exists before proceeding
-if [ ! -d "$EXTRACTED_FOLDER" ]; then
-    echo -e "${RED}Error: Source folder not found: $EXTRACTED_FOLDER${NC}"
+OS_TYPE="$(uname -s)"
+ARCH_TYPE="$(uname -m)"
+
+if [ "$OS_TYPE" = "Linux" ]; then
+    PLATFORM="linux"
+elif [ "$OS_TYPE" = "Darwin" ]; then
+    PLATFORM="macos"
+else
+    printf "%b\n" "${RED}Error: Unsupported operating system ($OS_TYPE)${NC}"
     exit 1
 fi
 
-# 5. Install Binaries
-echo "-> Installing to /usr/local/bin..."
-cp "$EXTRACTED_FOLDER/maazdb-server" /usr/local/bin/
-cp "$EXTRACTED_FOLDER/maazdb-cli" /usr/local/bin/
-chmod +x /usr/local/bin/maazdb-server /usr/local/bin/maazdb-cli
+case "$ARCH_TYPE" in
+    x86_64) ARCH="amd64" ;;
+    aarch64|arm64) ARCH="arm64" ;;
+    *) ARCH="amd64" ;;
+esac
 
-# 6. Linux Service (Systemd)
+TARGET="maazdb-${PLATFORM}-${ARCH}"
+TAR_FILE="${TARGET}.tar.gz"
+TMP_DIR=$(mktemp -d)
+
+printf "%b\n" "-> Fetching latest build for ${PLATFORM}-${ARCH}..."
+DOWNLOAD_URL="https://github.com/$REPO/releases/download/v$VERSION/$TAR_FILE"
+
+if ! curl -sSL --connect-timeout 10 "$DOWNLOAD_URL" -o "$TMP_DIR/$TAR_FILE"; then
+    printf "%b\n" "${RED}Error: Failed to download release bundle.${NC}"
+    rm -rf "$TMP_DIR"
+    exit 1
+fi
+
+tar -xzf "$TMP_DIR/$TAR_FILE" -C "$TMP_DIR"
+EXTRACTED_FOLDER="$TMP_DIR/$TARGET"
+
+# Stop existing services and processes before copying
+printf "%b\n" "-> Stopping active MaazDB processes..."
 if [ "$PLATFORM" = "linux" ]; then
-    echo "-> Configuring Systemd service..."
-    mkdir -p /var/lib/maazdb
-    
-    cat > /etc/systemd/system/maazdb.service << EOF
+    if [ "$IS_ROOT" = "true" ]; then
+        systemctl stop maazdb.service 2>/dev/null || true
+    else
+        systemctl --user stop maazdb.service 2>/dev/null || true
+    fi
+fi
+# Kill any lingering foreground processes to release file locks
+pkill -f maazdb-server || true
+pkill -f maazdb-cli || true
+sleep 1
+
+mkdir -p "$INSTALL_DIR"
+
+printf "%b\n" "-> Deploying executables to $INSTALL_DIR..."
+if [ -f "$EXTRACTED_FOLDER/maazdb-server" ]; then
+    rm -f "$INSTALL_DIR/maazdb-server"
+    cp "$EXTRACTED_FOLDER/maazdb-server" "$INSTALL_DIR/"
+    chmod 0755 "$INSTALL_DIR/maazdb-server"
+fi
+
+if [ -f "$EXTRACTED_FOLDER/maazdb-cli" ]; then
+    rm -f "$INSTALL_DIR/maazdb-cli"
+    cp "$EXTRACTED_FOLDER/maazdb-cli" "$INSTALL_DIR/"
+    chmod 0755 "$INSTALL_DIR/maazdb-cli"
+fi
+
+mkdir -p "$ICON_DIR"
+mkdir -p "$APP_DIR"
+
+if [ -f "$EXTRACTED_FOLDER/maazdb.ico" ]; then
+    cp "$EXTRACTED_FOLDER/maazdb.ico" "$ICON_DIR/"
+fi
+
+if [ "$PLATFORM" = "linux" ] && [ -f "$EXTRACTED_FOLDER/maazdb.desktop" ]; then
+    sed -e "s|__EXEC__|$INSTALL_DIR/maazdb-cli|g" \
+        -e "s|__ICON__|$ICON_DIR/maazdb.ico|g" \
+        "$EXTRACTED_FOLDER/maazdb.desktop" > "$APP_DIR/maazdb.desktop"
+    chmod 0755 "$APP_DIR/maazdb.desktop"
+fi
+
+# Systemd Registration & Restart
+if [ "$PLATFORM" = "linux" ] && [ -f "$INSTALL_DIR/maazdb-server" ]; then
+    printf "%b\n" "-> Configuring background service..."
+    if [ "$IS_ROOT" = "true" ]; then
+        SERVICE_FILE="/etc/systemd/system/maazdb.service"
+        cat <<EOF > "$SERVICE_FILE"
 [Unit]
-Description=MaazDB Database Server
+Description=MaazDB High-Performance Server
 After=network.target
 
 [Service]
 Type=simple
-User=${SUDO_USER:-root}
-ExecStart=/usr/local/bin/maazdb-server
-WorkingDirectory=/var/lib/maazdb
-Restart=always
-RestartSec=3
+ExecStart=$INSTALL_DIR/maazdb-server
+Restart=on-failure
+LimitNOFILE=65536
 
 [Install]
 WantedBy=multi-user.target
 EOF
-    systemctl daemon-reload
-    systemctl enable maazdb
-    systemctl restart maazdb
+        systemctl daemon-reload
+        systemctl enable maazdb.service || true
+        systemctl start maazdb.service || true
+    else
+        USER_SERVICE_DIR="$HOME/.config/systemd/user"
+        mkdir -p "$USER_SERVICE_DIR"
+        cat <<EOF > "$USER_SERVICE_DIR/maazdb.service"
+[Unit]
+Description=MaazDB User Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=$INSTALL_DIR/maazdb-server
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
+EOF
+        systemctl --user daemon-reload
+        systemctl --user enable maazdb.service || true
+        systemctl --user start maazdb.service || true
+    fi
 fi
 
-# 7. Cleanup
 rm -rf "$TMP_DIR"
 
-echo -e "${GREEN}Success! MaazDB is installed and running.${NC}"
-echo -e "Use ${BLUE}maazdb-cli${NC} to connect."
+SHELL_NAME="$(basename "$SHELL")"
+case "$SHELL_NAME" in
+    zsh) PROFILE_PATH="$HOME/.zshrc" ;;
+    bash) PROFILE_PATH="$HOME/.bashrc" ;;
+    *) PROFILE_PATH="$HOME/.profile" ;;
+esac
+
+if [ "$IS_ROOT" = "false" ] && [ -f "$PROFILE_PATH" ]; then
+    if ! grep -q "$INSTALL_DIR" "$PROFILE_PATH"; then
+        echo "" >> "$PROFILE_PATH"
+        echo "export PATH=\"\$PATH:$INSTALL_DIR\"" >> "$PROFILE_PATH"
+        printf "%b\n" "${YELLOW}👉 Run: 'source $PROFILE_PATH' or reload your shell to activate PATH updates.${NC}"
+    fi
+fi
+
+printf "%b\n" "${GREEN}✓ Installation complete!${NC}"

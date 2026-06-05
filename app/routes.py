@@ -12,10 +12,17 @@ def index():
                            linux_file=current_app.config['INSTALLER_LINUX'],
                            mac_file=current_app.config['INSTALLER_MAC'])
 
+# Serve Unix Shell Script with correct text/plain mimetype
 @bp.route('/install.sh')
 def serve_install_sh():
     static_dir = os.path.join(current_app.root_path, 'static', 'installers')
-    return send_from_directory(static_dir, 'install.sh')
+    return send_from_directory(static_dir, 'install.sh', mimetype='text/plain')
+
+# Serve Windows PowerShell Script with correct text/plain mimetype
+@bp.route('/install.ps1')
+def serve_install_ps1():
+    static_dir = os.path.join(current_app.root_path, 'static', 'installers')
+    return send_from_directory(static_dir, 'install.ps1', mimetype='text/plain')
 
 
 @bp.context_processor
