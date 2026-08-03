@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    .docs-content pre { max-width: 100%; overflow-x: auto; }
+</style>
+{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/other.css') }}">
+<div class="docs-layout">
+
+    {% include 'doc_sidebar.html' %}
+
+    <!-- MAIN DOCUMENTATION CONTENT -->
+    <main class="docs-content">
+        <section id="cli-intro">
+            <h1>Standalone CLI Client &amp; Embedded SDK v2.1</h1>
+<p>MaazDB Standalone CLI (<code>maazdb-cli</code>) is a highly responsive, zero-dependency command-line terminal client. This document outlines the standalone client architecture, embedded async engine, command-line formatting and execution parameters, and local REPL slashed overrides.</p>
+<hr />
+<h2>1. Standalone Crate Architecture (<code>sdk-cli</code>)</h2>
+<p>To maximize compilation efficiency, reduce binary overhead, and eliminate circular workspace dependencies, <code>maazdb-cli</code> is completely decoupled from the external <code>maazdb-rs</code> driver crate.</p>
+<h3>Built-In Client Engine (<code>src/sdk.rs</code>)</h3>
+<p>The CLI embeds its own implementation of the asynchronous, multiplexed <strong>MaazDB Protocol v2.1</strong> client directly in <code>src/sdk.rs</code>. This provides several advantages:
+* <strong>Zero Dependency Lock-In:</strong> The CLI can be updated, compiled, and deployed independently of other driver targets.
+* <strong>Unified Build Footprint:</strong> Eliminates the need to link external client libraries, generating a single standalone binary.
+* <strong>Custom Protocol Optimization:</strong> Tailored specifically to the CLI's requirements, such as custom driver signatures (<code>maazdb-standalone-client-v1</code>) to allow the server to easily audit administrator sessions.</p>
+<hr />
+<h2>2. Command-Line Interface (CLI Options)</h2>
+<p>The CLI binary supports direct terminal interactions using standard GNU-style double-dash flags, single-character options, and positional fallbacks.</p>
+<h3>Option Reference Table</h3>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Flag</th>
+<th style="text-align: left;">Alternative</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><code>-h</code></td>
+<td style="text-align: left;"><code>--help</code></td>
+<td style="text-align: left;">Prints the help menu and lists examples.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-c</code></td>
+<td style="text-align: left;"><code>--config</code></td>
+<td style="text-align: left;">Launches the interactive setup wizard with secure password masking.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-m</code></td>
+<td style="text-align: left;"><code>--monitor</code></td>
+<td style="text-align: left;">Opens the terminal-based (TUI) real-time system monitor.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-s</code></td>
+<td style="text-align: left;"><code>--source</code></td>
+<td style="text-align: left;">Executes a local <code>.sql</code> script sequentially and exits immediately.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><code>-f</code></td>
+<td style="text-align: left;"><code>--format</code></td>
+<td style="text-align: left;">Dynamic output formatter. Supports <code>table</code>, <code>json</code>, <code>csv</code>, or <code>tsv</code>.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><em>None</em></td>
+<td style="text-align: left;"><code>[path/to/file.sql]</code></td>
+<td style="text-align: left;">Bypasses flags; executes the file directly if detected on disk.</td>
+</tr>
+</tbody>
+</table>
+<h3>Usage Examples</h3>
+<h4>Run Script in JSON Format:</h4>
+<pre><code class="language-bash">maazdb-cli -f json /var/lib/maazdb/backups/seed.sql
+</code></pre>
+<h4>Run Script in CSV Format (Positional Detection):</h4>
+<pre><code class="language-bash">maazdb-cli -f csv /mnt/shared/maazdb-proj/maazdb/tests/suite.sql
+</code></pre>
+<h4>Launch REPL with TSV Output:</h4>
+<pre><code class="language-bash">maazdb-cli -f tsv
+</code></pre>
+<p><em>Note for Cargo users: Remember to use the <code>--</code> double-dash token to prevent Cargo from consuming your flags:</em></p>
+<pre><code class="language-bash">cargo run --bin maazdb-cli -- -f json script.sql
+</code></pre>
+<hr />
+<h2>3. Interactive REPL Features &amp; Slashed Shorthands</h2>
+<p>The entire terminal runtime runs within a non-blocking <code>#[tokio::main]</code> wrapper, allowing query execution to operate over an active multiplexed socket.</p>
+<h3>Standard Shell Intercepts</h3>
+<p>When running in interactive REPL mode (<code>maazdb&gt;</code>), certain commands are caught locally by the client parser before being sent over the network, saving server round-trips:
+* <code>help</code> : Displays the interactive shell commands and keyboard shortcuts.
+* <code>clear</code> : Instantly clears the screen buffer.
+* <code>exit</code> / <code>quit</code> : Shuts down active background writer/reader tasks and terminates the process.</p>
+<h3>Script Loading: S and SOURCE</h3>
+<p>To run local scripts from inside the shell, the parser supports both the verbose standard command and an abbreviated shorthand:
+* <strong>Shorthand:</strong> <code>S '/path/to/file.sql';</code>
+* <strong>Verbose:</strong> <code>SOURCE '/path/to/file.sql';</code></p>
+<h3>Slashed Database Shorthands (Postgres-Style)</h3>
+<p>For faster database management, you can use local slash-intercept commands inside the terminal shell:
+* <code>\l</code> : List all tables in the current database (<code>SHOW TABLES;</code> shortcut).
+* <code>\d &lt;table_name&gt;</code> : Describe table structure (<code>DESCRIBE &lt;table_name&gt;;</code> shortcut).
+* <code>\c &lt;db_name&gt;</code> : Switch active database schema (<code>USE &lt;db_name&gt;;</code> shortcut).
+* <code>\format &lt;type&gt;</code> : Switch output formatting dynamically on-the-fly (<code>table</code>, <code>json</code>, <code>csv</code>, <code>tsv</code>).</p>
+<hr />
+<h2>4. Internal Implementation &amp; Resiliency Blueprint</h2>
+<p>The CLI's design relies on clean task-separation over a single TCP socket:</p>
+<pre><code>                  +-----------------------------------+
+                  |      maazdb-cli Thread Loop       |
+                  +-----------------------------------+
+                     /                             \
+        (Query Spawn)                               (Packet Read)
+                   v                                 v
+   +-------------------------------+      +-------------------------------+
+   |      Async Writer Task        |      |      Async Reader Task        |
+   +-------------------------------+      +-------------------------------+
+   | Pulls packets from mpsc queue |      | Parses 8-byte framing headers |
+   | Writes payload to TcpStream   |      | Routes via Request ID         |
+   +-------------------------------+      +-------------------------------+
+                   \                                 /
+                    v                               v
+                  +-----------------------------------+
+                  |      Secure TLS 1.3 TcpStream     |
+                  +-----------------------------------+
+</code></pre>
+<h3>Self-Healing Auto-Reconnection (Keep-Alive Resilience)</h3>
+<p>Network interruptions (such as VPN drops on high-latency channels) can break active sockets. 
+To prevent execution errors:
+1. The client intercepts the <code>ConnectionClosed</code> signal.
+2. It pauses the current command and attempts to establish a fresh TCP/TLS connection using the loaded persistent config.
+3. Upon successful cryptographic handshake, the client transparently re-issues the query in the background.</p>
+<hr />
+<h2>5. 0-RTT Safe Flight Auto-Tagging</h2>
+<p>Protocol v2.1 introduces support for TLS 1.3 0-RTT connection times. To prevent mutating queries from being replayed on public networks, the client implements an automatic evaluation layer:</p>
+<ul>
+<li><strong>Statement Inspection:</strong> When a query is passed to the SDK, the SQL is normalized and evaluated locally.</li>
+<li><strong>Flag Injection:</strong> If the query is read-only (<code>SELECT</code>, <code>SHOW</code>, <code>DESCRIBE</code>, or <code>DESC</code>), the client automatically attaches the <code>FLAG_EARLY_DATA</code> (<code>0x02</code>) bitmask to the packet header.</li>
+<li><strong>Mutating Protection:</strong> Mutating queries (<code>INSERT</code>, <code>UPDATE</code>, <code>DELETE</code>, etc.) bypass 0-RTT early data flags to guarantee transactional integrity on the server side.
+```</li>
+</ul>
+        </section>
+    </main>
+</div>
+{% endblock %}

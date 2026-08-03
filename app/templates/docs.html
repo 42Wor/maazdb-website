@@ -67,7 +67,7 @@
 <div class="docs-layout">
 
     <!-- SIDEBAR NAVIGATION -->
-    <aside class="docs-sidebar">
+    {% include 'doc_sidebar.html' %} <!--
         <h3>Quick Start</h3>
         <ul>
             <li><a href="#intro">Introduction</a></li>
@@ -106,408 +106,538 @@
         <ul>
             <li><a href="#test-suite">Complete Test Suite</a></li>
         </ul>
-    </aside>
+    -->
 
     <!-- MAIN DOCUMENTATION CONTENT -->
     <main class="docs-content">
-
-        <section id="intro">
-            <h1>MaazDB Documentation</h1>
-            <p><strong>Version:</strong> {{ version or '12.0.0' }}<br>
-                <strong>Default Port:</strong> 8888<br>
-                <strong>Protocol:</strong> TCP / Binary Length-Prefixed
-            </p>
-
-            <h3>What is MaazDB?</h3>
-            <p>MaazDB is a lightweight, high-performance database management system built with modern development
-                workflows in mind. It features a custom binary protocol, full ACID compliance, and an intuitive SQL-like
-                query language.</p>
-        </section>
-
-        <!-- INSTALLATION -->
-        <section id="installation">
-            <h2>Installation</h2>
-
-            <h3>Linux (Debian/Ubuntu/Kali)</h3>
-            <div class="install-badge">
-                <i class="fab fa-linux"></i>
-                <code>sudo dpkg -i maazdb_{{ version or '12.0.0' }}_linux_amd64.deb</code>
-            </div>
-
-            <h3>macOS</h3>
-            <div class="install-badge">
-                <i class="fab fa-apple"></i>
-                <code>Open MaazDB_{{ version or '12.0.0' }}_macOS.dmg</code>
-            </div>
-
-            <h3>Windows</h3>
-            <div class="install-badge">
-                <i class="fab fa-windows"></i>
-                <code>Run MaazDB_Setup_Windows_x64.exe</code>
-            </div>
-        </section>
-
-        <!-- 1. PROTOCOL -->
-        <section id="protocol">
-            <h2>1. Connection Protocol</h2>
-            <p>MaazDB uses a custom binary protocol over TCP. Every packet follows this structure:</p>
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>Byte</th>
-                        <th>Field</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>Type</td>
-                        <td><code>0x01</code> Command, <code>0x02</code> Msg, <code>0x03</code> Data, <code>0xFF</code>
-                            Error</td>
-                    </tr>
-                    <tr>
-                        <td>4</td>
-                        <td>Length</td>
-                        <td>Unsigned 32-bit Integer (Big-Endian)</td>
-                    </tr>
-                    <tr>
-                        <td>N</td>
-                        <td>Payload</td>
-                        <td>UTF-8 String (SQL or JSON Result)</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
-
-        <!-- 2. AUTHENTICATION -->
-        <section id="auth">
-            <h2>2. Authentication</h2>
-            <p>If you've used older versions of MaazDB, you might remember having to send a <code>LOGIN</code> SQL query
-                to authenticate. We've completely revamped this process to make it much more secure and
-                developer-friendly!</p>
-            <p>Now, authentication happens entirely under the hood the moment your driver connects to the database. You
-                simply pass your credentials (host, port, username, and password) directly into your language's driver
-                connection method. This ensures that your session is securely authenticated from the very first packet,
-                preventing unauthorized access before any SQL is even parsed.</p>
-
-            <span class="code-label">Conceptual Example (Using a Client Driver)</span>
-            <pre><code>// No more LOGIN queries! Just pass credentials to your driver:
-const db = new MaazDB();
-await db.connect("127.0.0.1", 8888, "admin", "admin");</code></pre>
-        </section>
-
-        <!-- 3. CONFIGURATION -->
-        <section id="configuration">
-            <h2>3. Server Configuration</h2>
-            <p>MaazDB is highly customizable. Upon installation, a configuration file is generated. You can use this
-                file to change the default port, bind address, TLS certificates, and fine-tune logging for maximum
-                performance.</p>
-
-            <span class="code-label">maazdb.toml</span>
-            <pre><code class="language-toml"># ========================================================
-# MaazDB Professional Configuration
-# ========================================================
+<section id="main-docs">
+<hr />
+<h4><strong>Page 1: Getting Started</strong></h4>
+<p><strong>1. Compilation &amp; Installation</strong>
+Compile the project binaries from source:</p>
+<pre><code class="language-bash">cargo build --release
+</code></pre>
+<p>To run the server locally as a foreground process:</p>
+<pre><code class="language-bash">cargo run --release --bin maazdb-server
+</code></pre>
+<p><strong>2. Automatic Secure Bootstrapping</strong>
+Upon first run, the server automatically checks for the presence of cryptographic identity assets inside the configured path (e.g., <code>certs/server.crt</code> and <code>certs/server.key</code>). If they are missing, MaazDB automatically generates a secure self-signed <strong>10-year TLS certificate</strong> with Subject Alternative Names (SAN) pointing to <code>localhost</code> and <code>127.0.0.1</code> to ensure secure out-of-the-box driver handshake compatibility.</p>
+<p><strong>3. Connecting to the Database</strong>
+Connect to your local or remote instance using the command-line interface (CLI):</p>
+<pre><code class="language-bash">maazdb-cli
+</code></pre>
+<p>By default, the CLI reads persistent configurations. If none exist, it falls back to connection parameters <code>127.0.0.1:8888</code> using default administrative credentials.</p>
+<hr />
+<h4><strong>Page 2: CLI Reference</strong></h4>
+<p>The MaazDB CLI provides interactive management, configuration wizards, and real-time server diagnostics.</p>
+<p><strong>1. Interactive SQL Shell (REPL)</strong>
+Running <code>maazdb-cli</code> without any flags launches the interactive database shell.</p>
+<ul>
+<li><strong>Local Shell Intercepts</strong>: Control your client-side environment locally without issuing overhead server queries:<ul>
+<li><code>help</code> : Prints the local help menu displaying REPL shortcuts.</li>
+<li><code>clear</code> : Instantly clears the terminal screen buffer.</li>
+</ul>
+</li>
+<li><strong>Statement Execution</strong>: Terminate queries with a semicolon <code>;</code> to send them to the server. You can write multi-line queries and include single-line comments (marked by <code>--</code>).</li>
+<li><strong>Script Support</strong>: Execute local SQL files sequentially using:
+    <code>sql
+    SOURCE 'path/to/file.sql';</code></li>
+</ul>
+<p><strong>2. Intelligent Offline Recovery Fallback</strong>
+If a connection attempt fails, the CLI displays a context-aware fallback screen. You can interactively:
+1.  Launch the <strong>Configuration Wizard</strong> to adjust host, port, or user credentials.
+2.  Open the <strong>Server Performance Monitor</strong> to inspect local server process health.
+3.  Exit the application.</p>
+<p><strong>3. Interactive Configuration Wizard (<code>--config</code> / <code>-c</code>)</strong>
+Guide-driven setup for persistent connection parameters. Inputs are collected with masking on passwords for added terminal-level security.</p>
+<p><strong>4. Live Performance Monitor (<code>--monitor</code> / <code>-m</code>)</strong>
+A responsive TUI diagnostic dashboard that handles terminal resize events dynamically:
+*   <strong>System Diagnostics</strong>: Global and per-core CPU and memory utilization.
+*   <strong>Dedicated Process Telemetry</strong>: Diagnostics for <code>maazdb-server</code> (CPU, memory, virtual memory, disk read/write throughput, and runtime).
+*   <strong>Network Activity</strong>: Linux socket tables tracking connection states, transaction bytes, and RX/TX throughput.
+*   <strong>Storage Breakdown</strong>: Total database and table size metrics alongside local disk space warnings.</p>
+<hr />
+<h4><strong>Page 3: SQL Reference</strong></h4>
+<p><strong>1. User Administration Commands</strong>
+MaazDB supports runtime credential management without requiring database server restarts.</p>
+<p><strong><code>CREATE USER</code></strong>
+Registers a new database user.</p>
+<pre><code class="language-sql">CREATE USER 'username' PASSWORD 'secure_password';
+</code></pre>
+<p><strong><code>ALTER USER</code></strong>
+Changes the password for an existing user.</p>
+<pre><code class="language-sql">ALTER USER &lt;username&gt; IDENTIFIED BY '&lt;new_password&gt;';
+</code></pre>
+<p><strong><code>DROP USER</code></strong>
+Removes a user account.</p>
+<pre><code class="language-sql">DROP USER 'username';
+</code></pre>
+<p><strong>2. Advanced Ingestion Commands</strong>
+MaazDB supports optimized bulk writes directly in SQL.</p>
+<p><strong>Multi-Row Insert</strong>
+Inserts multiple rows of data in a single transactional query block to minimize network round-trips.</p>
+<pre><code class="language-sql">INSERT INTO users (name, age) VALUES 
+('Alice', 30),
+('Bob', 25),
+('Charlie', 35);
+</code></pre>
+<p><strong><code>INSERT INTO ... SELECT</code></strong>
+Enables high-performance data copying or archiving from one table schema directly into another.</p>
+<pre><code class="language-sql">INSERT INTO archived_users (name, score) 
+SELECT name, score FROM active_players WHERE score &gt; 1000;
+</code></pre>
+<p><strong>3. Analytical Aggregates</strong>
+MaazDB supports standard SQL aggregations over visible MVCC transaction snapshots:
+*   <code>COUNT(*)</code> : Count total matching records.
+*   <code>SUM(col)</code> : Total the values of a numeric column.
+*   <code>AVG(col)</code> : Calculate the mean of a numeric column.
+*   <code>MIN(col)</code> : Find the lowest value.
+*   <code>MAX(col)</code> : Find the highest value.</p>
+<pre><code class="language-sql">SELECT COUNT(*), AVG(salary), MAX(salary) FROM employees WHERE is_active = TRUE;
+</code></pre>
+<p><strong>4. Point-in-Time Disaster Recovery</strong>
+Disaster recovery operations are exposed natively in the SQL dialect.</p>
+<p><strong><code>BACKUP</code></strong>
+Triggers a memory-table flush and writes a database snapshot to the specified folder directory.</p>
+<pre><code class="language-sql">BACKUP 'snapshot_v1';
+</code></pre>
+<p><strong><code>SHOW BACKUPS</code></strong>
+Displays available backups stored in the storage root along with metadata, timestamp, and size.</p>
+<pre><code class="language-sql">SHOW BACKUPS;
+</code></pre>
+<p><strong><code>RESTORE</code></strong>
+Overwrites the current database tables with data from the specified snapshot, replaying transaction log entries up to that moment.</p>
+<pre><code class="language-sql">RESTORE 'snapshot_v1';
+</code></pre>
+<hr />
+<h4><strong>Page 4: Configuration</strong></h4>
+<p><strong>1. Server Configuration (<code>maazdb.toml</code>)</strong>
+Server configurations are stored in an organized TOML file. If absent, a default file is created automatically on startup.</p>
+<p><strong>Default Locations:</strong>
+*   <strong>Linux:</strong> <code>~/.config/maazdb/server/maazdb.toml</code>
+*   <strong>macOS:</strong> <code>~/Library/Application Support/maazdb/server/maazdb.toml</code>
+*   <strong>Windows:</strong> <code>%APPDATA%\maazdb\server\maazdb.toml</code></p>
+<p><strong>Default Structure:</strong></p>
+<pre><code class="language-toml"># MaazDB Server Configuration
 
 [server]
-host = "0.0.0.0"
+host = &quot;0.0.0.0&quot;
 port = 8888
-cert_file = "certs/server.crt"
-key_file = "certs/server.key"
+cert_file = &quot;certs/server.crt&quot;
+key_file = &quot;certs/server.key&quot;
 
 [storage]
-data_dir = "data"
+data_dir = &quot;data&quot;
 
 [logging]
-# Set to false to enable high-performance logging
 enabled = false
-log_dir = "logs"
-max_files = 5
-# 10 MB rotation limit
-max_log_size = 10485760 
-# Levels: trace | debug | info | warn | error
-level = "info"
-# Keep false for maximum benchmark performance
-console_enabled = false</code></pre>
-        </section>
+log_dir = &quot;logs&quot;
+max_log_size_mb = 50
+level = &quot;info&quot;
+</code></pre>
+<p><strong>2. Client Configuration (<code>config.json</code>)</strong>
+Saved automatically in JSON format by the CLI configuration wizard.</p>
+<p><strong>Default Locations:</strong>
+*   <strong>Linux:</strong> <code>~/.config/maazdb/client/config.json</code>
+*   <strong>macOS:</strong> <code>~/Library/Application Support/maazdb/client/config.json</code>
+*   <strong>Windows:</strong> <code>%APPDATA%\maazdb\client\config.json</code></p>
+<p><strong>Default Content:</strong></p>
+<pre><code class="language-json">{
+  &quot;host&quot;: &quot;127.0.0.1&quot;,
+  &quot;port&quot;: 8888,
+  &quot;username&quot;: &quot;admin&quot;,
+  &quot;password&quot;: &quot;admin&quot;
+}
+</code></pre>
+<hr />
+<h4><strong>Page 5: Architecture</strong></h4>
+<p>MaazDB is a columnar, disk-backed relational database engine designed for durability and low latency.</p>
+<ul>
+<li>
+<p><strong>LSM Storage &amp; Columnar Disk Structure:</strong></p>
+<ul>
+<li><strong>LSM MemTable Cache:</strong> Intercepts write operations inside a fast <code>BTreeMap</code> transaction buffer, allowing high-frequency writes to complete with low latency.</li>
+<li><strong>Columnar Disk Storage:</strong> Checkpoints flush the MemTable sequentially to disk in individual column files (<code>.bin</code> files). This structure optimizes analytical queries by retrieving only the requested columns.</li>
+<li><strong>ChaCha20 Column Encryption:</strong> Protects data at rest by encrypting columnar pages natively.</li>
+</ul>
+</li>
+<li>
+<p><strong>MVCC Snapshot Isolation:</strong></p>
+<ul>
+<li><strong>Lightweight Transaction Snapshots:</strong> Transactions operate on isolated snapshots. Read queries run concurrently without blocking write operations.</li>
+<li><strong>Atomic Rollbacks &amp; Row-Level Locking:</strong> Handles updates and deletions cleanly via transactional version fields (<code>xmin</code> and <code>xmax</code>), securing records with row locks during active modifications.</li>
+</ul>
+</li>
+<li>
+<p><strong>Hybrid Primary Indexing &amp; Sparse Indexing:</strong></p>
+<ul>
+<li><strong>Root Map &amp; Index Chunks:</strong> Uses a disk-backed, chunked index to handle large datasets. A root sparse index maps minimum keys to chunk IDs, loading target ranges into a small LRU chunk cache as needed.</li>
+<li><strong>Sparse Column Indices:</strong> Accelerates lookups in variable-length fields (such as <code>TEXT</code> and <code>UUID</code>) by mapping exact row positions to physical offsets in the column files, preventing expensive sequential table scans.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h3><strong>Part 2: Developer Documentation (<code>DEVELOPER.md</code>)</strong></h3>
+<pre><code class="language-markdown"># MaazDB Developer Guide
 
-        <!-- ECOSYSTEM & DRIVERS -->
-        <section id="ecosystem">
-            <h2>Ecosystem & Official Drivers</h2>
-            <p>MaazDB isn't just a standalone database; it's a growing ecosystem. We know that writing raw TCP sockets
-                isn't fun, so we've built native, highly-optimized drivers for your favorite programming languages.</p>
-            <p>Whether you are building a web backend in Node.js, a high-performance system in Rust, or doing data
-                analysis in Python, we have an official library ready for you. These drivers handle all the complex
-                binary protocol packing, TLS encryption, and connection pooling automatically.</p>
-            <a href="{{ url_for('main.overview') }}" class="btn btn-primary"
-                style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: var(--accent, #007bff); color: white; text-decoration: none; border-radius: 5px;">Explore
-                Official Drivers & Libraries &rarr;</a>
-        </section>
-<section id="db-USE">
-            <h2>4. Database Management & Architecture</h2>
-            
-            <div id="USE" style="margin-top: 2rem; background: rgba(255, 255, 255, 0.03); border-left: 4px solid #3b82f6; padding: 1.5rem; border-radius: 4px;">
-                
-                <h3 style="margin-top: 0; color: #60a5fa;">
-                    <i class="fas fa-network-wired"></i> Multi-Tenancy & Distributed Mesh
-                </h3>
+Welcome, contributor! This document provides a deep dive into the internal architecture of MaazDB to help you get started.
 
-                <p>
-                    MaazDB is architected as a <strong>Multi-Tenant System</strong>. This means a single MaazDB cluster can simultaneously serve multiple different applications (tenants) while keeping their data completely isolated.
-                </p>
+## 1. Development Environment Setup
 
-                <p>
-                    The <code>USE</code> command is the bridge between the <strong>Logical Layer</strong> (your specific application's workspace) and the <strong>Physical Layer</strong> (the distributed nodes).
-                </p>
+MaazDB uses a workspace architecture. For local development, compile the workspace and test interactions by running the local targets sequentially.
 
-                <p><strong>Why this architecture is powerful:</strong></p>
-                <ul style="margin-bottom: 1.5rem; padding-left: 1.2rem; color: #cbd5e1; line-height: 1.6;">
-                    <li><strong>Multi-Tenancy:</strong> Host data for App A and App B on the same servers without mixing them.</li>
-                    <li><strong>Smart Routing:</strong> The <code>USE</code> command tells the Coordinator node exactly which Shard Map to look at.</li>
-                    <li><strong>Resource Efficiency:</strong> Multiple apps share the same CPU/RAM resources, saving infrastructure costs.</li>
-                    <li><strong>Zero-Downtime Switching:</strong> Instantly switch contexts between databases without closing the network connection.</li>
-                </ul>
+### Local Setup &amp; Compilation
+1. **Compile Workspace**:
+   ```bash
+   cargo build --release
+   ```
+2. **Launch Local Server**:
+   ```bash
+   cargo run --release --bin maazdb-server
+   ```
+3. **Execute Local CLI Client**:
+   ```bash
+   cargo run --release --bin maazdb-cli -- --config
+   ```
 
-                <span class="code-label">Syntax</span>
-                <pre style="margin-top: 0.5rem;"><code>USE &lt;db_name&gt;;</code></pre>
-            </div>
+All persisted configurations created via the local CLI will write to the default OS-specific standard folder under `maazdb/client/config.json`.
 
-            <span class="code-label">Example</span>
-            <pre><code>USE ecommerce_app;
--- The system now routes all queries to the 'ecommerce' shards
+## 2. Core Architectural Philosophy
 
-USE blog_app;
--- The system instantly switches routing to the 'blog' shards</code></pre>
-        </section>
-        <section id="db-mgmt">
+MaazDB is a multi-threaded, disk-backed, transactional database engine. Its design prioritizes:
+1.  **Durability First:** Every insert, update, or delete is written to a Write-Ahead Log (WAL) and flushed before transaction commit.
+2.  **Concurrency:** Multi-Version Concurrency Control (MVCC) permits lock-free reads alongside active writes.
+3.  **Scalability:** Memory foot print is strictly controlled using a LRU-driven paged buffer pool.
+4.  **Security:** Data-in-transit is secured via TLS 1.3, and data-at-rest is encrypted with ChaCha20.
 
+## 3. Core Components Deep Dive
 
-            <h3>Create Database</h3>
-            <p>Initialize a new storage namespace within the system.</p>
-            <span class="code-label">Syntax</span>
-            <pre><code>CREATE DATABASE &lt;db_name&gt;;</code></pre>
+### SQLEngine (`src/sql/engine.rs`)
+*   **Role:** The query routing and maintenance hub. It parses inbound commands, starts transaction IDs, manages sessions, and schedules core background routines.
+*   **Background Maintenance Thread:** A background worker runs continuously on a 500ms sleep cycle to manage resources:
+    1.  **WAL Fsyncing:** Flushes unwritten transaction buffers to physical disk every 500ms.
+    2.  **Autonomous Checkpointing:** Truncates the active `wal.log` and checkpoints MemTable records to columnar storage when the WAL size exceeds 5MB or after a 5-second interval.
+    3.  **Buffer Pool Purging:** Automatically unloads unused cache frames from memory if they have been idle for more than 60 seconds to optimize system resources.
 
-            <h3>Show Databases</h3>
-            <span class="code-label">Syntax</span>
-            <pre><code>SHOW DATABASES;</code></pre>
+### Columnar Storage &amp; Buffer Pool (`src/storage/mod.rs`)
+*   **Role:** Handles zero-copy reading and writing of database column files.
+*   **BufferPoolManager:** Maintains page frames in memory.
+    *   **Eviction:** Uses an LRU cache. When the pool reaches capacity, the least recently used clean page is evicted. If a page is dirty, it is encrypted and flushed before eviction.
+    *   **In-Place Cryptography:** Employs ChaCha20 to secure data at rest. When writing to disk, a random 12-byte cryptographic nonce is generated and prefixed to the page. The rest of the page is encrypted in-place directly inside the page buffer to avoid memory copies. On page fetch, this process is reversed.
 
-            <h3>Drop Database</h3>
-            <span class="code-label">Syntax</span>
-            <pre><code>DROP DATABASE &lt;db_name&gt;;</code></pre>
-        </section>
+### Write-Ahead Log (`src/storage/wal.rs`)
+*   **Role:** Guarantees durability and crash safety.
+*   **Optimized Serialization:** Serializes transaction entries `(table, row)` using `bincode`. 
+*   **Auto-Fsync:** Writes are buffered for performance and automatically flushed to disk when unflushed transaction logs exceed 1MB.
+*   **Crash Recovery:** On database startup, the engine replays the `wal.log` sequentially, inserting recovered records into the in-memory MemTable to restore the database to its last consistent state.
 
-        <!-- 5. SCHEMA (DDL) -->
-        <section id="types">
-            <h2>5. Data Types</h2>
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>Type</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>SERIAL</code></td>
-                        <td>Auto-incrementing Integer (Primary Key only)</td>
-                    </tr>
-                    <tr>
-                        <td><code>INT</code></td>
-                        <td>Standard 32-bit Integer</td>
-                    </tr>
-                    <tr>
-                        <td><code>DOUBLE</code></td>
-                        <td>64-bit Floating point</td>
-                    </tr>
-                    <tr>
-                        <td><code>TEXT</code></td>
-                        <td>UTF-8 String</td>
-                    </tr>
-                    <tr>
-                        <td><code>BOOL</code></td>
-                        <td>Boolean (TRUE/FALSE)</td>
-                    </tr>
-                    <tr>
-                        <td><code>TIMESTAMP</code></td>
-                        <td>Date and time</td>
-                    </tr>
-                    <tr>
-                        <td><code>UUID</code></td>
-                        <td>Universally Unique Identifier</td>
-                    </tr>
-                </tbody>
-            </table>
-        </section>
+### MemTable (`src/storage/memory.rs`)
+*   **Role:** A high-speed, thread-safe memory buffer for incoming writes.
+*   **TableData Rows:** Houses transactional versions of rows in a thread-safe `BTreeMap&lt;u64, Arc&lt;Row&gt;&gt;` protected by `parking_lot::RwLock`.
+*   **MVCC-Aware Checkpointing:** During a checkpoint, `drain_table` is called to atomically clear the MemTable. All versions of rows are kept in order to prevent index offset drift.
 
-        <section id="create-table">
-            <h3>Create Table</h3>
-            <span class="code-label">Syntax</span>
-            <pre><code>CREATE TABLE &lt;table_name&gt; (
-    &lt;col_name&gt; &lt;type&gt; [PRIMARY KEY],
-    ...
-);</code></pre>
-        </section>
+### Primary Index (`src/storage/index_store.rs`)
+*   **Role:** Speeds up primary key operations with O(1) direct access.
+*   **Structure:** Chunks key-value pairs into sorted BTree files on disk (maximum 20,000 keys per chunk) to avoid large contiguous memory allocations.
+*   **LRU Cache Control:** Loads active chunks into a small LRU cache (capped at 16 chunks to keep memory usage under 20MB), using an in-memory root map to route requests quickly.
 
-        <section id="foreign-keys">
-            <h3>Foreign Keys</h3>
-            <span class="code-label">Syntax</span>
-            <pre><code>CREATE TABLE &lt;table_name&gt; (
-    ...
-    FOREIGN KEY (&lt;local_col&gt;) REFERENCES &lt;parent_table&gt;(&lt;parent_col&gt;)
-);</code></pre>
-        </section>
+## 4. Data Lifecycle (Write &amp; Read Paths)
 
-        <section id="table-mgmt">
-            <h3>Table Management</h3>
-            <h4>Show Tables</h4>
-            <pre><code>SHOW TABLES;</code></pre>
-            <h4>Describe Table</h4>
-            <pre><code>DESCRIBE &lt;table_name&gt;;</code></pre>
-            <h4>Drop Table</h4>
-            <pre><code>DROP TABLE &lt;table_name&gt;;</code></pre>
-        </section>
+</code></pre>
+<p>[WRITE PATH]
+SQL Statement -&gt; SQLEngine -&gt; Begin Tx -&gt; Log to WAL -&gt; Insert to MemTable -&gt; Commit -&gt; Success
+                                   |
+                          (Background Thread)
+                                   |
+                          Extract MemTable -&gt; Flush to ColumnStore -&gt; Update Index -&gt; Truncate WAL</p>
+<p>[READ PATH]
+SQL Statement -&gt; SQLEngine -&gt; Create Snapshot -&gt; Primary Index (PK?) 
+                                                        |
+                                          +-------------+-------------+
+                                          | (Yes)                     | (No)
+                                     Direct O(1)                Vectorized Scan
+                                     Point Lookup               &amp; Materialize
+                                          |                           |
+                                          +-------------+-------------+
+                                                        |
+                                                 Apply MVCC Rules
+                                                        |
+                                                Return Result Set</p>
+<pre><code>
+## 5. Areas for Contribution
 
-        <!-- 6. DATA MANIPULATION (DML) -->
-        <section id="insert">
-            <h2>6. Data Manipulation (DML)</h2>
-            <h3>Insert</h3>
-            <p>Adds new rows to a table. Do not include <code>SERIAL</code> columns in your insert statement, as they
-                auto-increment.</p>
-            <span class="code-label">Syntax</span>
-            <pre><code>INSERT INTO &lt;table_name&gt; (&lt;col1&gt;, &lt;col2&gt;) VALUES (&lt;val1&gt;, &lt;val2&gt;);</code></pre>
-            <a href="{{ url_for('main.insert') }}"
-                style="color: var(--accent, #007bff); text-decoration: underline; font-weight: bold;">Learn more about
-                INSERT &rarr;</a>
-        </section>
+*   **Analytical Features:** Additional SQL join methods (`JOIN`, `LEFT JOIN`), and extra filtering conditions.
+*   **Query Optimization:** Cost-based index analyzers and vectorized query execution.
+*   **Clustering &amp; Distribution:** Implement the Gossip protocol and routing for replica setups.
+</code></pre>
+<p>_
+An updated, comprehensive specification is ready for <code>/mnt/shared/maazdb-proj/maazdb/build_guide/addinnext/1.md</code>. </p>
+<p>This revision reflects the actual feature additions of <strong>v13.5.0</strong> as found in the codebase. It details the newly supported SQL capabilities, automated TLS certificate provisioning, in-place cryptographic operations, and background maintenance. All references to the deprecated <code>dev.toml</code> files have been omitted.</p>
+<hr />
+<h3><strong>Part 1: Updated Website Documentation</strong></h3>
+<hr />
+<h4><strong>Page 1: Getting Started</strong></h4>
+<p><strong>1. Compilation &amp; Installation</strong>
+Compile the project binaries from source:</p>
+<pre><code class="language-bash">cargo build --release
+</code></pre>
+<p>To run the server locally as a foreground process:</p>
+<pre><code class="language-bash">cargo run --release --bin maazdb-server
+</code></pre>
+<p><strong>2. Automatic Secure Bootstrapping</strong>
+Upon first run, the server automatically checks for the presence of cryptographic identity assets inside the configured path (e.g., <code>certs/server.crt</code> and <code>certs/server.key</code>). If they are missing, MaazDB automatically generates a secure self-signed <strong>10-year TLS certificate</strong> with Subject Alternative Names (SAN) pointing to <code>localhost</code> and <code>127.0.0.1</code> to ensure secure out-of-the-box driver handshake compatibility.</p>
+<p><strong>3. Connecting to the Database</strong>
+Connect to your local or remote instance using the command-line interface (CLI):</p>
+<pre><code class="language-bash">maazdb-cli
+</code></pre>
+<p>By default, the CLI reads persistent configurations. If none exist, it falls back to connection parameters <code>127.0.0.1:8888</code> using default administrative credentials.</p>
+<hr />
+<h4><strong>Page 2: CLI Reference</strong></h4>
+<p>The MaazDB CLI provides interactive management, configuration wizards, and real-time server diagnostics.</p>
+<p><strong>1. Interactive SQL Shell (REPL)</strong>
+Running <code>maazdb-cli</code> without any flags launches the interactive database shell.</p>
+<ul>
+<li><strong>Local Shell Intercepts</strong>: Control your client-side environment locally without issuing overhead server queries:<ul>
+<li><code>help</code> : Prints the local help menu displaying REPL shortcuts.</li>
+<li><code>clear</code> : Instantly clears the terminal screen buffer.</li>
+</ul>
+</li>
+<li><strong>Statement Execution</strong>: Terminate queries with a semicolon <code>;</code> to send them to the server. You can write multi-line queries and include single-line comments (marked by <code>--</code>).</li>
+<li><strong>Script Support</strong>: Execute local SQL files sequentially using:
+    <code>sql
+    SOURCE 'path/to/file.sql';</code></li>
+</ul>
+<p><strong>2. Intelligent Offline Recovery Fallback</strong>
+If a connection attempt fails, the CLI displays a context-aware fallback screen. You can interactively:
+1.  Launch the <strong>Configuration Wizard</strong> to adjust host, port, or user credentials.
+2.  Open the <strong>Server Performance Monitor</strong> to inspect local server process health.
+3.  Exit the application.</p>
+<p><strong>3. Interactive Configuration Wizard (<code>--config</code> / <code>-c</code>)</strong>
+Guide-driven setup for persistent connection parameters. Inputs are collected with masking on passwords for added terminal-level security.</p>
+<p><strong>4. Live Performance Monitor (<code>--monitor</code> / <code>-m</code>)</strong>
+A responsive TUI diagnostic dashboard that handles terminal resize events dynamically:
+*   <strong>System Diagnostics</strong>: Global and per-core CPU and memory utilization.
+*   <strong>Dedicated Process Telemetry</strong>: Diagnostics for <code>maazdb-server</code> (CPU, memory, virtual memory, disk read/write throughput, and runtime).
+*   <strong>Network Activity</strong>: Linux socket tables tracking connection states, transaction bytes, and RX/TX throughput.
+*   <strong>Storage Breakdown</strong>: Total database and table size metrics alongside local disk space warnings.</p>
+<hr />
+<h4><strong>Page 3: SQL Reference</strong></h4>
+<p><strong>1. User Administration Commands</strong>
+MaazDB supports runtime credential management without requiring database server restarts.</p>
+<p><strong><code>CREATE USER</code></strong>
+Registers a new database user.</p>
+<pre><code class="language-sql">CREATE USER 'username' PASSWORD 'secure_password';
+</code></pre>
+<p><strong><code>ALTER USER</code></strong>
+Changes the password for an existing user.</p>
+<pre><code class="language-sql">ALTER USER &lt;username&gt; IDENTIFIED BY '&lt;new_password&gt;';
+</code></pre>
+<p><strong><code>DROP USER</code></strong>
+Removes a user account.</p>
+<pre><code class="language-sql">DROP USER 'username';
+</code></pre>
+<p><strong>2. Advanced Ingestion Commands</strong>
+MaazDB supports optimized bulk writes directly in SQL.</p>
+<p><strong>Multi-Row Insert</strong>
+Inserts multiple rows of data in a single transactional query block to minimize network round-trips.</p>
+<pre><code class="language-sql">INSERT INTO users (name, age) VALUES 
+('Alice', 30),
+('Bob', 25),
+('Charlie', 35);
+</code></pre>
+<p><strong><code>INSERT INTO ... SELECT</code></strong>
+Enables high-performance data copying or archiving from one table schema directly into another.</p>
+<pre><code class="language-sql">INSERT INTO archived_users (name, score) 
+SELECT name, score FROM active_players WHERE score &gt; 1000;
+</code></pre>
+<p><strong>3. Analytical Aggregates</strong>
+MaazDB supports standard SQL aggregations over visible MVCC transaction snapshots:
+*   <code>COUNT(*)</code> : Count total matching records.
+*   <code>SUM(col)</code> : Total the values of a numeric column.
+*   <code>AVG(col)</code> : Calculate the mean of a numeric column.
+*   <code>MIN(col)</code> : Find the lowest value.
+*   <code>MAX(col)</code> : Find the highest value.</p>
+<pre><code class="language-sql">SELECT COUNT(*), AVG(salary), MAX(salary) FROM employees WHERE is_active = TRUE;
+</code></pre>
+<p><strong>4. Point-in-Time Disaster Recovery</strong>
+Disaster recovery operations are exposed natively in the SQL dialect.</p>
+<p><strong><code>BACKUP</code></strong>
+Triggers a memory-table flush and writes a database snapshot to the specified folder directory.</p>
+<pre><code class="language-sql">BACKUP 'snapshot_v1';
+</code></pre>
+<p><strong><code>SHOW BACKUPS</code></strong>
+Displays available backups stored in the storage root along with metadata, timestamp, and size.</p>
+<pre><code class="language-sql">SHOW BACKUPS;
+</code></pre>
+<p><strong><code>RESTORE</code></strong>
+Overwrites the current database tables with data from the specified snapshot, replaying transaction log entries up to that moment.</p>
+<pre><code class="language-sql">RESTORE 'snapshot_v1';
+</code></pre>
+<hr />
+<h4><strong>Page 4: Configuration</strong></h4>
+<p><strong>1. Server Configuration (<code>maazdb.toml</code>)</strong>
+Server configurations are stored in an organized TOML file. If absent, a default file is created automatically on startup.</p>
+<p><strong>Default Locations:</strong>
+*   <strong>Linux:</strong> <code>~/.config/maazdb/server/maazdb.toml</code>
+*   <strong>macOS:</strong> <code>~/Library/Application Support/maazdb/server/maazdb.toml</code>
+*   <strong>Windows:</strong> <code>%APPDATA%\maazdb\server\maazdb.toml</code></p>
+<p><strong>Default Structure:</strong></p>
+<pre><code class="language-toml"># MaazDB Server Configuration
 
-        <section id="select">
-            <h3>Select</h3>
-            <p>Retrieves data with powerful filtering capabilities.</p>
-            <span class="code-label">Syntax</span>
-            <pre><code>SELECT &lt;cols&gt; FROM &lt;table_name&gt; [WHERE condition];</code></pre>
+[server]
+host = &quot;0.0.0.0&quot;
+port = 8888
+cert_file = &quot;certs/server.crt&quot;
+key_file = &quot;certs/server.key&quot;
 
-            <h4>Aggregate Functions</h4>
-            <p>Aggregate functions perform a calculation on a set of values and return a single value. They are
-                incredibly useful for data analysis.</p>
-            <table class="custom-table">
-                <thead>
-                    <tr>
-                        <th>Function</th>
-                        <th>Description</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td><code>COUNT(column)</code></td>
-                        <td>Returns the total number of rows matching the criteria.</td>
-                    </tr>
-                    <tr>
-                        <td><code>SUM(column)</code></td>
-                        <td>Returns the total sum of a numeric column.</td>
-                    </tr>
-                    <tr>
-                        <td><code>MAX(column)</code></td>
-                        <td>Returns the largest (maximum) value of the selected column.</td>
-                    </tr>
-                    <tr>
-                        <td><code>MIN(column)</code></td>
-                        <td>Returns the smallest (minimum) value of the selected column.</td>
-                    </tr>
-                </tbody>
-            </table>
+[storage]
+data_dir = &quot;data&quot;
 
-            <span class="code-label">Example</span>
-            <pre><code>-- Get the total number of users and the sum of all salaries
-SELECT COUNT(*) as total_users, SUM(salary) as total_payroll FROM users;
+[logging]
+enabled = false
+log_dir = &quot;logs&quot;
+max_log_size_mb = 50
+level = &quot;info&quot;
+</code></pre>
+<p><strong>2. Client Configuration (<code>config.json</code>)</strong>
+Saved automatically in JSON format by the CLI configuration wizard.</p>
+<p><strong>Default Locations:</strong>
+*   <strong>Linux:</strong> <code>~/.config/maazdb/client/config.json</code>
+*   <strong>macOS:</strong> <code>~/Library/Application Support/maazdb/client/config.json</code>
+*   <strong>Windows:</strong> <code>%APPDATA%\maazdb\client\config.json</code></p>
+<p><strong>Default Content:</strong></p>
+<pre><code class="language-json">{
+  &quot;host&quot;: &quot;127.0.0.1&quot;,
+  &quot;port&quot;: 8888,
+  &quot;username&quot;: &quot;admin&quot;,
+  &quot;password&quot;: &quot;admin&quot;
+}
+</code></pre>
+<hr />
+<h4><strong>Page 5: Architecture</strong></h4>
+<p>MaazDB is a columnar, disk-backed relational database engine designed for durability and low latency.</p>
+<ul>
+<li>
+<p><strong>LSM Storage &amp; Columnar Disk Structure:</strong></p>
+<ul>
+<li><strong>LSM MemTable Cache:</strong> Intercepts write operations inside a fast <code>BTreeMap</code> transaction buffer, allowing high-frequency writes to complete with low latency.</li>
+<li><strong>Columnar Disk Storage:</strong> Checkpoints flush the MemTable sequentially to disk in individual column files (<code>.bin</code> files). This structure optimizes analytical queries by retrieving only the requested columns.</li>
+<li><strong>ChaCha20 Column Encryption:</strong> Protects data at rest by encrypting columnar pages natively.</li>
+</ul>
+</li>
+<li>
+<p><strong>MVCC Snapshot Isolation:</strong></p>
+<ul>
+<li><strong>Lightweight Transaction Snapshots:</strong> Transactions operate on isolated snapshots. Read queries run concurrently without blocking write operations.</li>
+<li><strong>Atomic Rollbacks &amp; Row-Level Locking:</strong> Handles updates and deletions cleanly via transactional version fields (<code>xmin</code> and <code>xmax</code>), securing records with row locks during active modifications.</li>
+</ul>
+</li>
+<li>
+<p><strong>Hybrid Primary Indexing &amp; Sparse Indexing:</strong></p>
+<ul>
+<li><strong>Root Map &amp; Index Chunks:</strong> Uses a disk-backed, chunked index to handle large datasets. A root sparse index maps minimum keys to chunk IDs, loading target ranges into a small LRU chunk cache as needed.</li>
+<li><strong>Sparse Column Indices:</strong> Accelerates lookups in variable-length fields (such as <code>TEXT</code> and <code>UUID</code>) by mapping exact row positions to physical offsets in the column files, preventing expensive sequential table scans.</li>
+</ul>
+</li>
+</ul>
+<hr />
+<h3><strong>Part 2: Developer Documentation (<code>DEVELOPER.md</code>)</strong></h3>
+<pre><code class="language-markdown"># MaazDB Developer Guide
 
--- Find the highest and lowest salary in the company
-SELECT MAX(salary) as highest_salary, MIN(salary) as lowest_salary FROM users;</code></pre>
-            <a href="{{ url_for('main.select') }}"
-                style="color: var(--accent, #007bff); text-decoration: underline; font-weight: bold;">Learn more about
-                SELECT &rarr;</a>
-        </section>
+Welcome, contributor! This document provides a deep dive into the internal architecture of MaazDB to help you get started.
 
-        <section id="update">
-            <h3>Update</h3>
-            <p>Modifies existing data based on a specific condition.</p>
-            <span class="code-label">Syntax</span>
-            <pre><code>UPDATE &lt;table_name&gt; SET &lt;col&gt; = &lt;val&gt; WHERE &lt;condition&gt;;</code></pre>
-            <a href="{{ url_for('main.update') }}"
-                style="color: var(--accent, #007bff); text-decoration: underline; font-weight: bold;">Learn more about
-                UPDATE &rarr;</a>
-        </section>
+## 1. Development Environment Setup
 
-        <section id="delete">
-            <h3>Delete</h3>
-            <p>Removes rows from a table based on a condition.</p>
-            <span class="code-label">Syntax</span>
-            <pre><code>DELETE FROM &lt;table_name&gt; WHERE &lt;condition&gt;;</code></pre>
-            <a href="{{ url_for('main.delete') }}"
-                style="color: var(--accent, #007bff); text-decoration: underline; font-weight: bold;">Learn more about
-                DELETE &rarr;</a>
-        </section>
+MaazDB uses a workspace architecture. For local development, compile the workspace and test interactions by running the local targets sequentially.
 
-        <!-- 7. BACKUP & RESTORE -->
-        <section id="backup">
-            <h2>7. Disaster Recovery</h2>
-            <h3>Backup</h3>
-            <pre><code>BACKUP '&lt;snapshot_name&gt;';</code></pre>
-            <h3>Show Backups</h3>
-            <pre><code>SHOW BACKUPS;</code></pre>
-            <h3>Restore</h3>
-            <pre><code>RESTORE '&lt;snapshot_name&gt;';</code></pre>
-        </section>
+### Local Setup &amp; Compilation
+1. **Compile Workspace**:
+   ```bash
+   cargo build --release
+   ```
+2. **Launch Local Server**:
+   ```bash
+   cargo run --release --bin maazdb-server
+   ```
+3. **Execute Local CLI Client**:
+   ```bash
+   cargo run --release --bin maazdb-cli -- --config
+   ```
 
-        <!-- 8. COMMENTS & LITERALS -->
-        <section id="comments">
-            <h2>8. Comments & Literals</h2>
-            <h3>Comments</h3>
-            <pre><code>-- This is a single-line comment
-/* This is a
-   multi-line comment */</code></pre>
-        </section>
+All persisted configurations created via the local CLI will write to the default OS-specific standard folder under `maazdb/client/config.json`.
 
-        <!-- 9. TEST SUITE -->
-        <section id="test-suite">
-            <h2>Complete Test Suite Example</h2>
-            <p>Below is a comprehensive test suite demonstrating all major features of MaazDB. You can run this directly
-                in your client to verify your setup.</p>
-            <pre><code>-- MaazDB Comprehensive Test Suite
--- Note: Authentication is handled by the client driver.
+## 2. Core Architectural Philosophy
 
--- 1. Database Management
-CREATE DATABASE full_test_db;
-USE full_test_db;
+MaazDB is a multi-threaded, disk-backed, transactional database engine. Its design prioritizes:
+1.  **Durability First:** Every insert, update, or delete is written to a Write-Ahead Log (WAL) and flushed before transaction commit.
+2.  **Concurrency:** Multi-Version Concurrency Control (MVCC) permits lock-free reads alongside active writes.
+3.  **Scalability:** Memory foot print is strictly controlled using a LRU-driven paged buffer pool.
+4.  **Security:** Data-in-transit is secured via TLS 1.3, and data-at-rest is encrypted with ChaCha20.
 
--- 2. DDL (Schema Creation)
-CREATE TABLE employees (
-    id SERIAL PRIMARY KEY,
-    name TEXT,
-    role TEXT,
-    salary DOUBLE,
-    is_active BOOL
-);
+## 3. Core Components Deep Dive
 
--- 3. DML (Data Insertion)
-INSERT INTO employees (name, role, salary, is_active) VALUES ('Alice', 'Engineer', 85000.00, TRUE);
-INSERT INTO employees (name, role, salary, is_active) VALUES ('Bob', 'Manager', 95000.50, TRUE);
-INSERT INTO employees (name, role, salary, is_active) VALUES ('Charlie', 'Intern', 30000.00, FALSE);
+### SQLEngine (`src/sql/engine.rs`)
+*   **Role:** The query routing and maintenance hub. It parses inbound commands, starts transaction IDs, manages sessions, and schedules core background routines.
+*   **Background Maintenance Thread:** A background worker runs continuously on a 500ms sleep cycle to manage resources:
+    1.  **WAL Fsyncing:** Flushes unwritten transaction buffers to physical disk every 500ms.
+    2.  **Autonomous Checkpointing:** Truncates the active `wal.log` and checkpoints MemTable records to columnar storage when the WAL size exceeds 5MB or after a 5-second interval.
+    3.  **Buffer Pool Purging:** Automatically unloads unused cache frames from memory if they have been idle for more than 60 seconds to optimize system resources.
 
--- 4. SELECT with Aggregates
-SELECT COUNT(*) as total_staff FROM employees;
-SELECT SUM(salary) as total_payroll FROM employees;
-SELECT MAX(salary) as highest_paid FROM employees;
-SELECT MIN(salary) as lowest_paid FROM employees;
+### Columnar Storage &amp; Buffer Pool (`src/storage/mod.rs`)
+*   **Role:** Handles zero-copy reading and writing of database column files.
+*   **BufferPoolManager:** Maintains page frames in memory.
+    *   **Eviction:** Uses an LRU cache. When the pool reaches capacity, the least recently used clean page is evicted. If a page is dirty, it is encrypted and flushed before eviction.
+    *   **In-Place Cryptography:** Employs ChaCha20 to secure data at rest. When writing to disk, a random 12-byte cryptographic nonce is generated and prefixed to the page. The rest of the page is encrypted in-place directly inside the page buffer to avoid memory copies. On page fetch, this process is reversed.
 
--- 5. UPDATE & DELETE
-UPDATE employees SET salary = 90000.00 WHERE name = 'Alice';
-DELETE FROM employees WHERE name = 'Charlie';
+### Write-Ahead Log (`src/storage/wal.rs`)
+*   **Role:** Guarantees durability and crash safety.
+*   **Optimized Serialization:** Serializes transaction entries `(table, row)` using `bincode`. 
+*   **Auto-Fsync:** Writes are buffered for performance and automatically flushed to disk when unflushed transaction logs exceed 1MB.
+*   **Crash Recovery:** On database startup, the engine replays the `wal.log` sequentially, inserting recovered records into the in-memory MemTable to restore the database to its last consistent state.
 
--- 6. Cleanup
-USE system;
-DROP DATABASE full_test_db;</code></pre>
-        </section>
-    </main>
+### MemTable (`src/storage/memory.rs`)
+*   **Role:** A high-speed, thread-safe memory buffer for incoming writes.
+*   **TableData Rows:** Houses transactional versions of rows in a thread-safe `BTreeMap&lt;u64, Arc&lt;Row&gt;&gt;` protected by `parking_lot::RwLock`.
+*   **MVCC-Aware Checkpointing:** During a checkpoint, `drain_table` is called to atomically clear the MemTable. All versions of rows are kept in order to prevent index offset drift.
+
+### Primary Index (`src/storage/index_store.rs`)
+*   **Role:** Speeds up primary key operations with O(1) direct access.
+*   **Structure:** Chunks key-value pairs into sorted BTree files on disk (maximum 20,000 keys per chunk) to avoid large contiguous memory allocations.
+*   **LRU Cache Control:** Loads active chunks into a small LRU cache (capped at 16 chunks to keep memory usage under 20MB), using an in-memory root map to route requests quickly.
+
+## 4. Data Lifecycle (Write &amp; Read Paths)
+
+</code></pre>
+<p>[WRITE PATH]
+SQL Statement -&gt; SQLEngine -&gt; Begin Tx -&gt; Log to WAL -&gt; Insert to MemTable -&gt; Commit -&gt; Success
+                                   |
+                          (Background Thread)
+                                   |
+                          Extract MemTable -&gt; Flush to ColumnStore -&gt; Update Index -&gt; Truncate WAL</p>
+<p>[READ PATH]
+SQL Statement -&gt; SQLEngine -&gt; Create Snapshot -&gt; Primary Index (PK?) 
+                                                        |
+                                          +-------------+-------------+
+                                          | (Yes)                     | (No)
+                                     Direct O(1)                Vectorized Scan
+                                     Point Lookup               &amp; Materialize
+                                          |                           |
+                                          +-------------+-------------+
+                                                        |
+                                                 Apply MVCC Rules
+                                                        |
+                                                Return Result Set</p>
+<pre><code>
+## 5. Areas for Contribution
+
+*   **Analytical Features:** Additional SQL join methods (`JOIN`, `LEFT JOIN`), and extra filtering conditions.
+*   **Query Optimization:** Cost-based index analyzers and vectorized query execution.
+*   **Clustering &amp; Distribution:** Implement the Gossip protocol and routing for replica setups.
+</code></pre>
+<p>_</p>
+</section>
+</main>
+
 </div>
 {% endblock %}
 

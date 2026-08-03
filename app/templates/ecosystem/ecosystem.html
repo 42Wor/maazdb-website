@@ -594,7 +594,7 @@
             
             <div class="eco-stats">
                 <div class="eco-stat-item">
-                    <strong>3</strong>
+                    <strong>4</strong>
                     <span>Active Drivers</span>
                 </div>
                 <div class="eco-stat-item">
@@ -647,7 +647,7 @@
             <span>Rust</span>
         </a>
 
-        <div class="eco-block coming-soon"><i class="fab fa-golang" style="color: #00ADD8;"></i><span>Go</span></div>
+        <a href="#driver-go" class="eco-block active"><i class="fab fa-golang" style="color: #00ADD8;"></i><span>Go</span></a>
         <div class="eco-block coming-soon"><i class="fab fa-java" style="color: #f89820;"></i><span>Java</span></div>
         <div class="eco-block coming-soon"><i class="fab fa-php" style="color: #777BB4;"></i><span>PHP</span></div>
         <div class="eco-block coming-soon"><i class="fas fa-gem" style="color: #CC342D;"></i><span>Ruby</span></div>
@@ -695,7 +695,7 @@
                         <a href="https://pypi.org/project/maazdb-py/" target="_blank"><i class="fab fa-python"></i> Install via PyPI</a>
                     </div>
                     <div class="driver-meta">
-                        <span class="meta-badge"><i class="fas fa-tag"></i> v1.0.0</span>
+                        <span class="meta-badge"><i class="fas fa-tag"></i> v2.0.0</span>
                         <span class="meta-badge"><i class="fas fa-balance-scale"></i> MIT</span>
                         <span class="meta-badge"><i class="fab fa-python"></i> Python 3.8+</span>
                     </div>
@@ -778,7 +778,7 @@ finally:
                         <a href="https://www.npmjs.com/package/maazdb-js" target="_blank"><i class="fab fa-npm"></i> Install via npm</a>
                     </div>
                     <div class="driver-meta">
-                        <span class="meta-badge"><i class="fas fa-tag"></i> v1.0.0</span>
+                        <span class="meta-badge"><i class="fas fa-tag"></i> v2.0.0</span>
                         <span class="meta-badge"><i class="fas fa-balance-scale"></i> MIT</span>
                         <span class="meta-badge"><i class="fab fa-node-js"></i> Node 14.x+</span>
                     </div>
@@ -869,7 +869,7 @@ main();</code></pre>
                         <a href="https://crates.io/crates/maazdb-rs" target="_blank"><i class="fas fa-cube"></i> View on Crates.io</a>
                     </div>
                     <div class="driver-meta">
-                        <span class="meta-badge"><i class="fas fa-tag"></i> v0.1.0</span>
+                        <span class="meta-badge"><i class="fas fa-tag"></i> v0.2.0</span>
                         <span class="meta-badge"><i class="fas fa-balance-scale"></i> Apache 2.0</span>
                         <span class="meta-badge"><i class="fab fa-rust"></i> Rust 1.65+</span>
                     </div>
@@ -882,7 +882,7 @@ main();</code></pre>
                     <div class="code-block-wrapper">
                         <h4>Cargo.toml</h4>
 <pre><code class="language-toml">[dependencies]
-maazdb-rs = "0.1.0"
+maazdb-rs = "0.2.0"
 tokio = { version = "1.0", features = ["full"] }</code></pre>
                     </div>
                     <div class="code-block-wrapper">
@@ -921,6 +921,45 @@ fn main() -> Result<(), Box<dyn Error>> {
                     <p>The Rust driver uses <strong>rustls</strong> by default to avoid OpenSSL dependencies. Ensure your system's root certificates are up to date, or provide a custom certificate path in the connection builder for self-signed deployments.</p>
                 </div>
             </div>
+        <!-- GO DRIVER -->
+        <div id="driver-go" class="driver-card-full">
+            <!-- Left Column -->
+            <div class="driver-info">
+                <div class="driver-header">
+                    <i class="fab fa-golang brand-go" style="color: #00ADD8; font-size: 2.5rem; margin-right: 15px;"></i>
+                    <h2>MaazDB-GO</h2>
+                </div>
+                <p class="driver-desc">
+                    The official, highly concurrent Go client for MaazDB. Leveraging Go's native goroutines and channels, it provides a thread-safe connection pool with seamless asynchronous multiplexing over Protocol v2.
+                </p>
+                <ul class="driver-features">
+                    <li><i class="fas fa-check-circle"></i> Thread-safe connection pooling</li>
+                    <li><i class="fas fa-check-circle"></i> High concurrency with Goroutines</li>
+                    <li><i class="fas fa-check-circle"></i> TLS 1.3 Secure by default</li>
+                    <li><i class="fas fa-check-circle"></i> Fast binary encoding</li>
+                </ul>
+                
+                <div class="driver-actions">
+                    <div class="driver-links">
+                        <a href="https://github.com/42Wor/maazdb-go" target="_blank"><i class="fab fa-github"></i> View Source</a>
+                    </div>
+                    <div class="driver-meta">
+                        <span class="meta-badge"><i class="fas fa-tag"></i> v2.0.0</span>
+                        <span class="meta-badge"><i class="fas fa-balance-scale"></i> MIT</span>
+                        <span class="meta-badge"><i class="fab fa-golang"></i> Go 1.18+</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column -->
+            <div class="driver-visuals">
+                <div class="driver-code">
+                    <div class="code-block-wrapper">
+                        <h4>Installation</h4>
+<pre><code class="language-bash">go get github.com/42wor/maazdb-go</code></pre>
+                    </div>
+                </div>
+            </div>
         </div>
 
     </div>
@@ -936,6 +975,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-javascript.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-go.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-toml.min.js"></script>
 {% endblock %}

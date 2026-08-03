@@ -35,6 +35,10 @@ def docs():
 def overview():
     return render_template('ecosystem/ecosystem.html')
 
+@bp.route('/docs/cli')
+def cli():
+    return render_template('cli.html')
+
 @bp.route('/docs/insert')
 def insert():
     return render_template('command/insert.html')
