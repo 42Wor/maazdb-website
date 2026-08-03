@@ -2,6 +2,24 @@
 
 This repository contains the source code for the official [MaazDB](https://maazdb.com) marketing website and documentation portal. It is built using a lightweight Python Flask stack.
 
+## About MaazDB
+MaazDB is a highly-concurrent, high-performance database engine built for the modern web. It is engineered from the ground up to minimize network latency and maximize storage efficiency through advanced data structures.
+
+### Key Engine Features
+* **RAM-Speed Writes:** Utilizes Log-Structured Merge (LSM) Trees and MemTables for high-frequency in-memory writes.
+* **Protocol v2 Multiplexing:** Asynchronous multiplexing over a single connection for zero Head-of-Line (HOL) blocking.
+* **Zero-Cost Security:** Built-in TLS 1.3 with 0-RTT session resumption, replay protection, and cryptographic driver authentication.
+* **Edge Optimized:** Automatic Zstd or LZ4 Smart Wire Compression for high-latency VPS & VPN channels.
+* **Multi-Tenant Architecture:** A single MaazDB cluster can serve multiple different applications with complete data isolation using the `USE` command.
+* **Native Cross-Platform:** Runs natively on Linux, macOS, and Windows without virtualization overhead.
+
+### Official Driver Ecosystem
+MaazDB provides official, high-performance drivers for your favorite languages:
+* **MaazDB-Py** (Python)
+* **MaazDB-JS** (Node.js)
+* **MaazDB-RS** (Rust)
+* **MaazDB-GO** (Go)
+
 ## Tech Stack
 * **Backend:** Python 3, Flask
 * **Frontend:** Jinja2 Templates, HTML5, Vanilla CSS3 (no external CSS frameworks used)
